@@ -1,0 +1,4 @@
+address = "127.0.0.1:8080"
+db = "postgres://user:pass@localhost/hel2"
+http_threads = 4
+db_threads = 2
