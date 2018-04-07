@@ -36,6 +36,14 @@ table! {
 }
 
 table! {
+    likes (user, package) {
+        user -> Int4,
+        package -> Text,
+        time -> Timestamp,
+    }
+}
+
+table! {
     maintainers (user, package) {
         user -> Int4,
         package -> Text,
@@ -48,6 +56,9 @@ table! {
         website -> Text,
         license -> Text,
         authors -> Array<Text>,
+        downloads -> Int4,
+        created -> Timestamp,
+        updated -> Timestamp,
     }
 }
 
@@ -58,6 +69,7 @@ table! {
         password -> Bytea,
         salt -> Bytea,
         group -> Varchar,
+        registered -> Timestamp,
     }
 }
 
@@ -66,6 +78,7 @@ table! {
         id -> Int4,
         package -> Text,
         version -> Text,
+        created -> Timestamp,
     }
 }
 
@@ -83,6 +96,8 @@ joinable!(dependencies -> packages (package));
 joinable!(dependencies -> versions (version));
 joinable!(dependency_descriptions -> dependencies (dependency));
 joinable!(descriptions -> packages (package));
+joinable!(likes -> packages (package));
+joinable!(likes -> users (user));
 joinable!(maintainers -> packages (package));
 joinable!(maintainers -> users (user));
 joinable!(version_texts -> versions (version));
@@ -93,6 +108,7 @@ allow_tables_to_appear_in_same_query!(
     dependencies,
     dependency_descriptions,
     descriptions,
+    likes,
     maintainers,
     packages,
     users,

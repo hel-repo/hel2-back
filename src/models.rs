@@ -1,3 +1,5 @@
+use chrono::{DateTime, Utc};
+
 use schema::*;
 
 pub mod types {
@@ -159,6 +161,7 @@ pub struct User {
     pub password: Vec<u8>,
     pub salt: Vec<u8>,
     pub group: String,
+    pub registered: DateTime<Utc>,
 }
 
 #[derive(Insertable, PartialEq, Debug)]
@@ -177,6 +180,9 @@ pub struct Package {
     pub website: String,
     pub license: String,
     pub authors: Vec<String>,
+    pub downloads: i32,
+    pub created: DateTime<Utc>,
+    pub updated: DateTime<Utc>,
 }
 
 #[derive(Insertable, PartialEq, Debug)]
@@ -186,6 +192,24 @@ pub struct NewPackage {
     pub website: String,
     pub license: String,
     pub authors: Vec<String>,
+    pub downloads: i32,
+}
+
+#[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
+#[primary_key(user, package)]
+#[belongs_to(User, foreign_key = "user")]
+#[belongs_to(Package, foreign_key = "package")]
+pub struct Like {
+    pub user: i32,
+    pub package: String,
+    pub time: DateTime<Utc>,
+}
+
+#[derive(Insertable, PartialEq, Debug)]
+#[table_name = "likes"]
+pub struct NewLike {
+    pub user: i32,
+    pub package: String,
 }
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
@@ -194,6 +218,7 @@ pub struct Version {
     pub id: i32,
     pub package: String,
     pub version: String,
+    pub created: DateTime<Utc>,
 }
 
 #[derive(Insertable, PartialEq, Debug)]

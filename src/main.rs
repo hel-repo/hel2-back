@@ -1,6 +1,7 @@
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate error_chain;
 extern crate env_logger;
+extern crate chrono;
 
 extern crate futures;
 extern crate actix;

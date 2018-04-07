@@ -7,6 +7,7 @@ authors = ["LeshaInc <includeurl@gmail.com>"]
 diesel = { version = "1.2", features = ["postgres"] }
 error-chain = "0.11"
 env_logger = "0.5"
+chrono = "0.4"
 
 futures = "0.1"
 actix = "0.5"
