@@ -55,8 +55,8 @@ table! {
     users (id) {
         id -> Int4,
         username -> Varchar,
-        password -> Bpchar,
-        salt -> Bpchar,
+        password -> Bytea,
+        salt -> Bytea,
         group -> Varchar,
     }
 }

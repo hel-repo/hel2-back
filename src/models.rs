@@ -1,54 +1,153 @@
-use schema;
+use schema::*;
 
-pub enum DependencyType {
-    BuildRequire,
-    RuntimeRequire,
-    Optional
-}
+pub mod types {
+    use std::{io, fmt};
+    use std::str::FromStr;
 
-impl<'a> FromStr for DependencyType {
-    type Err = &'a str;
+    use diesel::backend::Backend;
+    use diesel::deserialize::{self, FromSql};
+    use diesel::serialize::{self, Output, ToSql};
+    use diesel::sql_types::Varchar;
 
-    fn from_str(s: &'a str) -> Result<Self, Self::Err> {
-        match s {
-            "build-require" => Ok(DependencyType::BuildRequire),
-            "runtime-require" => Ok(DependencyType::RuntimeRequire),
-            "optional" => Ok(DependencyType::Optional),
-            _ => Err(format!("Unknown dependency type: {}", s)),
+    use error::{Error, ErrorKind, Result};
+
+    #[derive(AsExpression, FromSqlRow, Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    #[sql_type = "Varchar"]
+    pub enum DependencyType {
+        BuildRequire,
+        RuntimeRequire,
+        Optional
+    }
+
+    impl FromStr for DependencyType {
+        type Err = Error;
+
+        fn from_str(s: &str) -> Result<Self> {
+            match s {
+                "build-require" => Ok(DependencyType::BuildRequire),
+                "runtime-require" => Ok(DependencyType::RuntimeRequire),
+                "optional" => Ok(DependencyType::Optional),
+                _ => bail!(ErrorKind::UnknownDependencyType(s.to_string())),
+            }
         }
     }
-}
 
-pub enum NodeType {
-    File,
-    Directory
-}
-
-impl<'a> FromStr for NodeType {
-    type Err = &'a str;
-
-    fn from_str(s: &'a str) -> Result(Self, Self::Err) {
-        match s {
-            "f" | "file" => Ok(NodeType::File),
-            "d" | "dir" | "directory" => Ok(NodeType::Directory),
-            _ => Err(format!("Unknown node type: {}", s)),
+    impl fmt::Display for DependencyType {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "{:?}", self)
         }
     }
-}
 
-pub enum Language {
-    Russian,
-    English,
-}
+    impl<DB: Backend> ToSql<Varchar, DB> for DependencyType
+    where
+        String: ToSql<Varchar, DB>,
+    {
+        fn to_sql<W: io::Write>(&self, out: &mut Output<W, DB>) -> serialize::Result {
+            self.to_string().to_sql(out)
+        }
+    }
 
-impl<'a> FromStr for Language {
-    type Err = &'a str;
+    impl<DB: Backend> FromSql<Varchar, DB> for DependencyType
+    where
+        String: FromSql<Varchar, DB>,
+    {
+        fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
+            match String::from_sql(bytes)?.parse::<DependencyType>() {
+                Ok(v) => Ok(v),
+                Err(e) => Err(Box::new(e)),
+            }
+        }
+    }
 
-    fn from_str(s: &'a str) -> Result(Self, Self::Err) {
-        match s {
-            "ru" | "rus" | "russian" => Ok(Language::Russian),
-            "en" | "eng" | "english" => Ok(Language::English),
-            _ => Err(format!("Unknown language: {}", s)),
+    #[derive(AsExpression, FromSqlRow, Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    #[sql_type = "Varchar"]
+    pub enum NodeType {
+        File,
+        Directory
+    }
+
+    impl FromStr for NodeType {
+        type Err = Error;
+
+        fn from_str(s: &str) -> Result<Self> {
+            match s {
+                "f" | "file" => Ok(NodeType::File),
+                "d" | "dir" | "directory" => Ok(NodeType::Directory),
+                _ => bail!(ErrorKind::UnknownNodeType(s.to_string())),
+            }
+        }
+    }
+
+    impl fmt::Display for NodeType {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "{:?}", self)
+        }
+    }
+
+    impl<DB: Backend> ToSql<Varchar, DB> for NodeType
+    where
+        String: ToSql<Varchar, DB>,
+    {
+        fn to_sql<W: io::Write>(&self, out: &mut Output<W, DB>) -> serialize::Result {
+            self.to_string().to_sql(out)
+        }
+    }
+
+    impl<DB: Backend> FromSql<Varchar, DB> for NodeType
+    where
+        String: FromSql<Varchar, DB>,
+    {
+        fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
+            match String::from_sql(bytes)?.parse::<NodeType>() {
+                Ok(v) => Ok(v),
+                Err(e) => Err(Box::new(e)),
+            }
+        }
+    }
+
+    #[derive(AsExpression, FromSqlRow, Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    #[sql_type = "Varchar"]
+    pub enum Language {
+        Russian,
+        English,
+    }
+
+    impl FromStr for Language {
+        type Err = Error;
+
+        fn from_str(s: &str) -> Result<Self> {
+            match s {
+                "ru" | "rus" | "russian" => Ok(Language::Russian),
+                "en" | "eng" | "english" => Ok(Language::English),
+                _ => bail!(ErrorKind::UnknownLanguage(s.to_string())),
+            }
+        }
+    }
+
+    impl fmt::Display for Language {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "{:?}", self)
+        }
+    }
+
+    impl<DB: Backend> ToSql<Varchar, DB> for Language
+    where
+        String: ToSql<Varchar, DB>,
+    {
+        fn to_sql<W: io::Write>(&self, out: &mut Output<W, DB>) -> serialize::Result {
+            self.to_string().to_sql(out)
+        }
+    }
+
+    impl<DB: Backend> FromSql<Varchar, DB> for Language
+    where
+        String: FromSql<Varchar, DB>,
+    {
+        fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
+            match String::from_sql(bytes)?.parse::<Language>() {
+                Ok(v) => Ok(v),
+                Err(e) => Err(Box::new(e)),
+            }
         }
     }
 }
@@ -56,6 +155,15 @@ impl<'a> FromStr for Language {
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 pub struct User {
     pub id: i32,
+    pub username: String,
+    pub password: Vec<u8>,
+    pub salt: Vec<u8>,
+    pub group: String,
+}
+
+#[derive(Insertable, PartialEq, Debug)]
+#[table_name = "users"]
+pub struct NewUser {
     pub username: String,
     pub password: Vec<u8>,
     pub salt: Vec<u8>,
@@ -71,15 +179,31 @@ pub struct Package {
     pub authors: Vec<String>,
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Insertable, PartialEq, Debug)]
+#[table_name = "packages"]
+pub struct NewPackage {
+    pub name: String,
+    pub website: String,
+    pub license: String,
+    pub authors: Vec<String>,
+}
+
+#[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
 #[belongs_to(Package, foreign_key = "package")]
 pub struct Version {
     pub id: i32,
     pub package: String,
-    pub version: Text,
+    pub version: String,
 }
 
-#[derive(Identifiable, PartialEq, Debug)]
+#[derive(Insertable, PartialEq, Debug)]
+#[table_name = "versions"]
+pub struct NewVersion {
+    pub package: String,
+    pub version: String,
+}
+
+#[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
 #[table_name = "dependencies"]
 #[belongs_to(Package, foreign_key = "package")]
 #[belongs_to(Version, foreign_key = "version")]
@@ -88,47 +212,41 @@ pub struct Dependency {
     pub package: String,
     pub version: i32,
     pub spec: String,
-    pub dep_type: DependencyType,
+    #[column_name = "type_"]
+    pub dep_type: types::DependencyType,
 }
 
-impl Queryable<schema::dependencies::SqlType, DB> for Dependency {
-    type Row = (i32, String, i32, String, String);
-
-    fn build(row: Self::Row) -> Self {
-        Dependency {
-            id: row.0,
-            package: row.1,
-            version: row.2,
-            spec: row.3,
-            dep_type: row.4.parse::<DependencyType>().unwrap(),
-        }
-    }
+#[derive(Insertable, PartialEq, Debug)]
+#[table_name = "dependencies"]
+pub struct NewDependency {
+    pub package: String,
+    pub version: i32,
+    pub spec: String,
+    #[column_name = "type_"]
+    pub dep_type: types::DependencyType,
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
 #[belongs_to(Version, foreign_key = "version")]
 #[table_name = "contents"]
 pub struct ContentNode {
     pub id: i32,
     pub version: i32,
     pub path: String,
-    pub node_type: NodeType,
+    #[column_name = "type_"]
+    pub node_type: types::NodeType,
 }
 
-impl Queryable<schema::contents::SqlType, DB> for ContentNode {
-    type Row = (i32, i32, String, String);
-
-    fn build(row: self::Row) -> Self {
-        ContentNode {
-            id: row.0,
-            version: row.1,
-            path: row.2,
-            node_type: row.3.parse::<NodeType>().unwrap(),
-        }
-    }
+#[derive(Insertable, PartialEq, Debug)]
+#[table_name = "contents"]
+pub struct NewContentNode {
+    pub version: i32,
+    pub path: String,
+    #[column_name = "type_"]
+    pub node_type: types::NodeType,
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
 #[primary_key(user, package)]
 #[belongs_to(User, foreign_key = "user")]
 #[belongs_to(Package, foreign_key = "package")]
@@ -137,67 +255,62 @@ pub struct Maintainer {
     pub package: String,
 }
 
-#[derive(Identifiable, PartialEq, Debug)]
+#[derive(Insertable, PartialEq, Debug)]
+#[table_name = "maintainers"]
+pub struct NewMaintainer {
+    pub user: i32,
+    pub package: String,
+}
+
+#[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
 #[primary_key(package, language)]
 #[belongs_to(Package, foreign_key = "package")]
 pub struct Description {
     pub package: String,
-    pub language: Language,
+    pub language: types::Language,
     pub description: String,
 }
 
-impl Queryable<schema::descriptions::SqlType, DB> for Description {
-    type Row = (String, String, String);
-
-    fn build(row: Self::Row) -> Self {
-        Description {
-            package: row.0,
-            language: row.1.parse::<Language>().unwrap(),
-            description: row.2,
-        }
-    }
+#[derive(Insertable, PartialEq, Debug)]
+#[table_name = "descriptions"]
+pub struct NewDescription {
+    pub package: String,
+    pub language: types::Language,
+    pub description: String,
 }
 
-#[derive(Identifiable, PartialEq, Debug)]
+#[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
 #[primary_key(version, language)]
 #[belongs_to(Version, foreign_key = "version")]
 pub struct VersionText {
     pub version: i32,
-    pub language: String,
+    pub language: types::Language,
     pub changes: String,
     pub readme: String,
 }
 
-impl Queryable<schema::version_texts::SqlType, DB> for VersionText {
-    type Row = (i32, String, String, String);
-
-    fn build(row: Self::Row) -> Self {
-        VersionText {
-            version: row.0,
-            language: row.1.parse::<Language>().unwrap(),
-            changes: row.2,
-            readme: row.3,
-        }
-    }
+#[derive(Insertable, PartialEq, Debug)]
+#[table_name = "version_texts"]
+pub struct NewVersionText {
+    pub version: i32,
+    pub language: types::Language,
+    pub changes: String,
+    pub readme: String,
 }
 
-#[derive(Identifiable, PartialEq, Debug)]
+#[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
 #[primary_key(dependency, language)]
 #[belongs_to(Dependency, foreign_key = "dependency")]
 pub struct DependencyDescription {
     pub dependency: i32,
-    pub language: String,
+    pub language: types::Language,
     pub description: String,
 }
 
-impl Queryable<schema::dependency_descriptions::SqlType, DB> for DependencyDescription {
-    type Row = (i32, String, String);
-
-    fn build(row: Self::Row) -> Self {
-        DependencyDescription {
-            dependency: row.0,
-            language: row.1.parse::<Language>().unwrap(),
-            description: row.2,
-        }
-    }
+#[derive(Insertable, PartialEq, Debug)]
+#[table_name = "dependency_descriptions"]
+pub struct NewDependencyDescription {
+    pub dependency: i32,
+    pub language: types::Language,
+    pub description: String,
 }

@@ -1,4 +1,4 @@
-extern crate diesel;
+#[macro_use] extern crate diesel;
 #[macro_use] extern crate error_chain;
 extern crate env_logger;
 
@@ -16,6 +16,8 @@ mod config;
 mod db;
 mod app;
 mod resources;
+mod models;
+mod schema;
 
 use actix::{System, SyncArbiter};
 use actix_web::HttpServer;

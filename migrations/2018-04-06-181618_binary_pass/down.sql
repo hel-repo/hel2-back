@@ -1,0 +1,2 @@
+ALTER TABLE users ALTER COLUMN password SET DATA TYPE CHAR(64),
+                  ALTER COLUMN salt SET DATA TYPE CHAR(64);
