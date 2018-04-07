@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use schema::*;
+use super::schema::*;
 
 pub mod types {
     use std::{io, fmt};
@@ -18,7 +18,7 @@ pub mod types {
     pub enum DependencyType {
         BuildRequire,
         RuntimeRequire,
-        Optional
+        Optional,
     }
 
     impl FromStr for DependencyType {
@@ -65,7 +65,7 @@ pub mod types {
     #[sql_type = "Varchar"]
     pub enum NodeType {
         File,
-        Directory
+        Directory,
     }
 
     impl FromStr for NodeType {

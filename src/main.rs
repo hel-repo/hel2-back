@@ -17,8 +17,6 @@ mod config;
 mod db;
 mod app;
 mod resources;
-mod models;
-mod schema;
 
 use actix::{System, SyncArbiter};
 use actix_web::HttpServer;
