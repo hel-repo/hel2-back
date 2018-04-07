@@ -15,6 +15,58 @@ pub mod types {
 
     #[derive(AsExpression, FromSqlRow, Debug, Copy, Clone, Eq, PartialEq, Hash)]
     #[sql_type = "Varchar"]
+    pub enum UserGroup {
+        User,
+        Admin,
+        Banned,
+    }
+
+    impl FromStr for UserGroup {
+        type Err = Error;
+
+        fn from_str(s: &str) -> Result<Self> {
+            match s {
+                "user" => Ok(UserGroup::User),
+                "admin" => Ok(UserGroup::Admin),
+                "banned" => Ok(UserGroup::Banned),
+                _ => bail!(ErrorKind::UnknownGroup(s.to_string())),
+            }
+        }
+    }
+
+    impl fmt::Display for UserGroup {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "{}", match *self {
+                UserGroup::User => "user",
+                UserGroup::Admin => "admin",
+                UserGroup::Banned => "banned",
+            })
+        }
+    }
+
+    impl<DB: Backend> ToSql<Varchar, DB> for UserGroup
+    where
+        String: ToSql<Varchar, DB>,
+    {
+        fn to_sql<W: io::Write>(&self, out: &mut Output<W, DB>) -> serialize::Result {
+            self.to_string().to_sql(out)
+        }
+    }
+
+    impl<DB: Backend> FromSql<Varchar, DB> for UserGroup
+    where
+        String: FromSql<Varchar, DB>,
+    {
+        fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
+            match String::from_sql(bytes)?.parse::<UserGroup>() {
+                Ok(v) => Ok(v),
+                Err(e) => Err(Box::new(e)),
+            }
+        }
+    }
+
+    #[derive(AsExpression, FromSqlRow, Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    #[sql_type = "Varchar"]
     pub enum DependencyType {
         BuildRequire,
         RuntimeRequire,
@@ -36,7 +88,11 @@ pub mod types {
 
     impl fmt::Display for DependencyType {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{:?}", self)
+            write!(f, "{}", match *self {
+                DependencyType::BuildRequire => "build-require",
+                DependencyType::RuntimeRequire => "runtime-require",
+                DependencyType::Optional => "optional",
+            })
         }
     }
 
@@ -82,7 +138,10 @@ pub mod types {
 
     impl fmt::Display for NodeType {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{:?}", self)
+            write!(f, "{}", match *self {
+                NodeType::File => "file",
+                NodeType::Directory => "dir",
+            })
         }
     }
 
@@ -128,7 +187,10 @@ pub mod types {
 
     impl fmt::Display for Language {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{:?}", self)
+            write!(f, "{}", match *self {
+                Language::Russian => "ru",
+                Language::English => "en",
+            })
         }
     }
 
@@ -160,7 +222,7 @@ pub struct User {
     pub username: String,
     pub password: Vec<u8>,
     pub salt: Vec<u8>,
-    pub group: String,
+    pub group: types::UserGroup,
     pub registered: DateTime<Utc>,
 }
 
