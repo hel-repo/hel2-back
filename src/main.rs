@@ -17,6 +17,7 @@ mod config;
 mod db;
 mod app;
 mod resources;
+mod models;
 
 use actix::{System, SyncArbiter};
 use actix_web::HttpServer;
@@ -34,7 +35,9 @@ fn main() {
 
     let db_config = config.clone();
     let db = SyncArbiter::start(config.db_threads, move || {
-        db::DbExecutor(db::establish_connection(&db_config.db).unwrap())
+        db::DbExecutor {
+            conn: db::establish_connection(&db_config.db).unwrap()
+        }
     });
 
     let state = State::new(config.clone(), db);

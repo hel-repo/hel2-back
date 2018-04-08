@@ -25,6 +25,7 @@ error_chain! {
         Io(::std::io::Error);
         TomlDe(::toml::de::Error);
         DbConnection(::diesel::ConnectionError);
+        DbQuery(::diesel::result::Error);
     }
 }
 

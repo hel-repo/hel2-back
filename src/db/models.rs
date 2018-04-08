@@ -13,7 +13,8 @@ pub mod types {
 
     use error::{Error, ErrorKind, Result};
 
-    #[derive(AsExpression, FromSqlRow, Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    #[derive(AsExpression, FromSqlRow, Serialize, Deserialize,
+             Debug, Copy, Clone, Eq, PartialEq, Hash)]
     #[sql_type = "Varchar"]
     pub enum UserGroup {
         User,
@@ -65,7 +66,8 @@ pub mod types {
         }
     }
 
-    #[derive(AsExpression, FromSqlRow, Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    #[derive(AsExpression, FromSqlRow, Serialize, Deserialize,
+             Debug, Copy, Clone, Eq, PartialEq, Hash)]
     #[sql_type = "Varchar"]
     pub enum DependencyType {
         BuildRequire,
@@ -117,7 +119,8 @@ pub mod types {
         }
     }
 
-    #[derive(AsExpression, FromSqlRow, Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    #[derive(AsExpression, FromSqlRow, Serialize, Deserialize,
+             Debug, Copy, Clone, Eq, PartialEq, Hash)]
     #[sql_type = "Varchar"]
     pub enum NodeType {
         File,
@@ -166,7 +169,8 @@ pub mod types {
         }
     }
 
-    #[derive(AsExpression, FromSqlRow, Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    #[derive(AsExpression, FromSqlRow, Serialize, Deserialize,
+             Debug, Copy, Clone, Eq, PartialEq, Hash)]
     #[sql_type = "Varchar"]
     pub enum Language {
         Russian,
@@ -232,7 +236,7 @@ pub struct NewUser {
     pub username: String,
     pub password: Vec<u8>,
     pub salt: Vec<u8>,
-    pub group: String,
+    pub group: UserGroup,
 }
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
