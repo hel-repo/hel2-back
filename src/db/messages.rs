@@ -1,4 +1,6 @@
 use actix::{Message, Handler};
+use diesel;
+use diesel::sql_types::Text;
 use diesel::prelude::*;
 
 use ::error::Result;
@@ -10,11 +12,11 @@ use super::schema;
 pub struct GetPackage(String);
 
 impl Message for GetPackage {
-    type Result = Result<package::Package>;
+    type Result = Result<package::Full>;
 }
 
 impl Handler<GetPackage> for DbExecutor {
-    type Result = Result<package::Package>;
+    type Result = Result<package::Full>;
 
     fn handle(&mut self, msg: GetPackage, _: &mut Self::Context) -> Self::Result {
         let name: &String = &msg.0;
@@ -83,30 +85,20 @@ impl Handler<GetPackage> for DbExecutor {
                         });
                     };
 
-                    let dependencies = {
-                        let mut dependencies: Vec<dependency::Full> = Vec::with_capacity(version_deps.len());
-
-                        for item in version_deps {
-                            let (dep, desc) = item;
-
-                            dependencies.push(dependency::Full {
-                                package: dep.package,
-                                spec: dep.spec,
-                                dep_type: dep.dep_type,
-                                description: match dep.dep_type {
-                                    models::types::DependencyType::Optional => {
-                                        Some(desc.into_iter().map(|x| Localized {
-                                            language: x.language,
-                                            text: x.description,
-                                        }).collect())
-                                    },
-                                    _ => None,
-                                }
-                            });
-                        };
-
-                        dependencies
-                    };
+                    let dependencies = version_deps.into_iter().map(|(dep, desc)| dependency::Full {
+                        package: dep.package,
+                        spec: dep.spec,
+                        dep_type: dep.dep_type,
+                        description: match dep.dep_type {
+                            models::types::DependencyType::Optional => {
+                                Some(desc.into_iter().map(|x| Localized {
+                                    language: x.language,
+                                    text: x.description,
+                                }).collect())
+                            },
+                            _ => None,
+                        }
+                    }).collect();
 
                     version::Full {
                         version: ver.version,
@@ -115,25 +107,16 @@ impl Handler<GetPackage> for DbExecutor {
                         // TODO
                         url: "".to_string(),
                         dependencies,
-                        contents: {
-                            let mut contents: Vec<ContentNode> = Vec::with_capacity(version_contents.len());
-
-                            for x in version_contents {
-                                contents.push(ContentNode {
-                                    node_type: x.node_type,
-                                    path: x.path,
-                                });
-                            }
-
-                            contents
-                        },
+                        contents: version_contents.into_iter().map(|x| ContentNode {
+                            node_type: x.node_type,
+                            path: x.path,
+                        }).collect(),
                         created: ver.created,
                     }
-                })
-                .collect()
+                }).collect()
         };
 
-        Ok(package::Package::Full(package::Full {
+        Ok(package::Full {
             name: package.name,
             description: descriptions.into_iter().map(|x| Localized {
                 language: x.language,
@@ -150,6 +133,30 @@ impl Handler<GetPackage> for DbExecutor {
             likes,
             created: package.created,
             updated: package.updated,
-        }))
+        })
+    }
+}
+
+pub struct GetUser(String);
+
+impl Message for GetUser {
+    type Result = Result<user::Full>;
+}
+
+impl Handler<GetUser> for DbExecutor {
+    type Result = Result<user::Full>;
+
+    fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
+        let username = &msg.0;
+
+        let user = schema::users::table
+            .filter(diesel::dsl::sql("lower(username) = ").bind::<Text, _>(username))
+            .get_result::<models::User>(&self.conn)?;
+
+        Ok(user::Full {
+            username: user.username,
+            group: user.group,
+            registered: user.registered,
+        })
     }
 }

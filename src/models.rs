@@ -51,11 +51,6 @@ pub mod user {
     pub struct Short {
         pub username: String,
     }
-
-    pub enum User {
-        Full(Full),
-        Short(Short),
-    }
 }
 
 pub mod package {
@@ -89,11 +84,6 @@ pub mod package {
         pub downloads: i32,
         pub likes: i32,
     }
-
-    pub enum Package {
-        Full(Full),
-        Short(Short),
-    }
 }
 
 pub mod version {
@@ -119,11 +109,6 @@ pub mod version {
         pub url: String,
         pub dependencies: Vec<super::dependency::Short>,
     }
-
-    pub enum Version {
-        Full(Full),
-        Short(Short),
-    }
 }
 
 pub mod dependency {
@@ -145,10 +130,5 @@ pub mod dependency {
     pub struct Short {
         pub package: String,
         pub spec: String,
-    }
-
-    pub enum Dependency {
-        Full(Full),
-        Short(Short),
     }
 }
