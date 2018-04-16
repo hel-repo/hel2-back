@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::NaiveDateTime;
 
 use super::schema::*;
 
@@ -227,7 +227,7 @@ pub struct User {
     pub password: Vec<u8>,
     pub salt: Vec<u8>,
     pub group: types::UserGroup,
-    pub registered: DateTime<Utc>,
+    pub registered: NaiveDateTime,
 }
 
 #[derive(Insertable, PartialEq, Debug)]
@@ -236,7 +236,7 @@ pub struct NewUser {
     pub username: String,
     pub password: Vec<u8>,
     pub salt: Vec<u8>,
-    pub group: UserGroup,
+    pub group: types::UserGroup,
 }
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
@@ -247,8 +247,8 @@ pub struct Package {
     pub license: String,
     pub authors: Vec<String>,
     pub downloads: i32,
-    pub created: DateTime<Utc>,
-    pub updated: DateTime<Utc>,
+    pub created: NaiveDateTime,
+    pub updated: NaiveDateTime,
 }
 
 #[derive(Insertable, PartialEq, Debug)]
@@ -268,7 +268,7 @@ pub struct NewPackage {
 pub struct Like {
     pub user: i32,
     pub package: String,
-    pub time: DateTime<Utc>,
+    pub time: NaiveDateTime,
 }
 
 #[derive(Insertable, PartialEq, Debug)]
@@ -284,7 +284,7 @@ pub struct Version {
     pub id: i32,
     pub package: String,
     pub version: String,
-    pub created: DateTime<Utc>,
+    pub created: NaiveDateTime,
 }
 
 #[derive(Insertable, PartialEq, Debug)]

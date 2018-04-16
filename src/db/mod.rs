@@ -1,3 +1,4 @@
+pub mod messages;
 pub mod models;
 pub mod schema;
 
@@ -12,7 +13,9 @@ pub fn establish_connection(db: &str) -> Result<PgConnection> {
     Ok(PgConnection::establish(db)?)
 }
 
-pub struct DbExecutor(pub PgConnection);
+pub struct DbExecutor {
+    pub conn: PgConnection
+}
 
 impl Actor for DbExecutor {
     type Context = SyncContext<Self>;

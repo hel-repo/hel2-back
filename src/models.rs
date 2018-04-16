@@ -1,11 +1,30 @@
-use chrono::{DateTime, Utc};
+use db::models::types::{Language, NodeType};
 
-use db::models::types::{Language, UserGroup};
+pub mod date_serde {
+    use chrono::{NaiveDateTime};
+    use serde::{self, Deserialize, Serializer, Deserializer};
+
+    const FORMAT: &'static str = "%+";
+
+    pub fn serialize<S>(date: &NaiveDateTime, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        let s = format!("{}", date.format(FORMAT));
+        serializer.serialize_str(&s)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<NaiveDateTime, D::Error>
+        where D: Deserializer<'de>
+    {
+        let s = String::deserialize(deserializer)?;
+        NaiveDateTime::parse_from_str(&s, FORMAT).map_err(serde::de::Error::custom)
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Localized {
-    language: Language,
-    text: String,
+    pub language: Language,
+    pub text: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -16,11 +35,16 @@ pub struct ContentNode {
 }
 
 pub mod user {
+    use chrono::NaiveDateTime;
+
+    use ::db::models::types::UserGroup;
+
     #[derive(Serialize, Deserialize)]
     pub struct Full {
         pub username: String,
         pub group: UserGroup,
-        pub registered: DateTime<Utc>,
+        #[serde(with = "super::date_serde")]
+        pub registered: NaiveDateTime,
     }
 
     #[derive(Serialize, Deserialize)]
@@ -35,6 +59,10 @@ pub mod user {
 }
 
 pub mod package {
+    use chrono::NaiveDateTime;
+
+    use super::Localized;
+
     #[derive(Serialize, Deserialize)]
     pub struct Full {
         pub name: String,
@@ -42,20 +70,22 @@ pub mod package {
         pub website: String,
         pub license: String,
         pub authors: Vec<String>,
-        pub maintainers: Vec<user::Short>,
-        pub versions: Vec<version::Full>,
+        pub maintainers: Vec<super::user::Short>,
+        pub versions: Vec<super::version::Full>,
         pub downloads: i32,
         pub likes: i32,
-        pub created: DateTime<Utc>,
-        pub updated: DateTime<Utc>,
+        #[serde(with = "super::date_serde")]
+        pub created: NaiveDateTime,
+        #[serde(with = "super::date_serde")]
+        pub updated: NaiveDateTime,
     }
 
     #[derive(Serialize, Deserialize)]
     pub struct Short {
         pub name: String,
         pub description: Vec<Localized>,
-        pub maintainers: Vec<user::Short>,
-        pub versions: Vec<version::Short>,
+        pub maintainers: Vec<super::user::Short>,
+        pub versions: Vec<super::version::Short>,
         pub downloads: i32,
         pub likes: i32,
     }
@@ -67,20 +97,27 @@ pub mod package {
 }
 
 pub mod version {
+    use chrono::NaiveDateTime;
+
+    use super::{ContentNode, Localized};
+
+    #[derive(Serialize, Deserialize)]
     pub struct Full {
         pub version: String,
         pub changes: Vec<Localized>,
         pub readme: Vec<Localized>,
         pub url: String,
-        pub dependencies: Vec<dependency::Full>,
+        pub dependencies: Vec<super::dependency::Full>,
         pub contents: Vec<ContentNode>,
-        pub created: DateTime<Utc>,
+        #[serde(with = "super::date_serde")]
+        pub created: NaiveDateTime,
     }
 
+    #[derive(Serialize, Deserialize)]
     pub struct Short {
         pub version: String,
         pub url: String,
-        pub dependencies: Vec<dependency::Short>,
+        pub dependencies: Vec<super::dependency::Short>,
     }
 
     pub enum Version {
@@ -90,14 +127,21 @@ pub mod version {
 }
 
 pub mod dependency {
+    use ::db::models::types::DependencyType;
+
+    use super::Localized;
+
+    #[derive(Serialize, Deserialize)]
     pub struct Full {
-        pub package: package::Short,
+        // package::Short would be nice here...
+        pub package: String,
         pub spec: String,
         #[serde(rename = "type")]
         pub dep_type: DependencyType,
         pub description: Option<Vec<Localized>>,
     }
 
+    #[derive(Serialize, Deserialize)]
     pub struct Short {
         pub package: String,
         pub spec: String,
