@@ -213,6 +213,9 @@ impl Handler<GetPackages> for DbExecutor {
 
         let likes: Vec<models::GroupedLike> = schema::likes::table
                 .select((schema::likes::package, diesel::dsl::sql::<BigInt>("count(*) as likes")))
+                .filter(schema::likes::package.eq(diesel::dsl::any(
+                    packages.iter().map(|x| &x.name).collect::<Vec<_>>()
+                )))
                 .group_by(schema::likes::package)
                 .load(&self.conn)?;
         let likes: HashMap<String, i32> = likes
