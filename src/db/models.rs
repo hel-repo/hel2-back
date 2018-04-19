@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use diesel::sql_types::{Text, BigInt};
 
 use super::schema::*;
 
@@ -404,4 +405,12 @@ pub struct NewDependencyDescription {
     pub dependency: i32,
     pub language: types::Language,
     pub description: String,
+}
+
+#[derive(Queryable, QueryableByName, PartialEq, Debug)]
+pub struct GroupedLike {
+    #[sql_type = "Text"]
+    pub package: String,
+    #[sql_type = "BigInt"]
+    pub likes: i64,
 }
