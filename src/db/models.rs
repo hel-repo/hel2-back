@@ -233,10 +233,10 @@ pub struct User {
 
 #[derive(Insertable, PartialEq, Debug)]
 #[table_name = "users"]
-pub struct NewUser {
-    pub username: String,
-    pub password: Vec<u8>,
-    pub salt: Vec<u8>,
+pub struct NewUser<'a> {
+    pub username: &'a str,
+    pub password: &'a [u8],
+    pub salt: &'a [u8],
     pub group: types::UserGroup,
 }
 
@@ -254,12 +254,11 @@ pub struct Package {
 
 #[derive(Insertable, PartialEq, Debug)]
 #[table_name = "packages"]
-pub struct NewPackage {
-    pub name: String,
-    pub website: String,
-    pub license: String,
-    pub authors: Vec<String>,
-    pub downloads: i32,
+pub struct NewPackage<'a> {
+    pub name: &'a str,
+    pub website: &'a str,
+    pub license: &'a str,
+    pub authors: &'a Vec<String>,
 }
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
@@ -274,9 +273,9 @@ pub struct Like {
 
 #[derive(Insertable, PartialEq, Debug)]
 #[table_name = "likes"]
-pub struct NewLike {
+pub struct NewLike<'a> {
     pub user: i32,
-    pub package: String,
+    pub package: &'a str,
 }
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
@@ -290,9 +289,9 @@ pub struct Version {
 
 #[derive(Insertable, PartialEq, Debug)]
 #[table_name = "versions"]
-pub struct NewVersion {
-    pub package: String,
-    pub version: String,
+pub struct NewVersion<'a> {
+    pub package: &'a str,
+    pub version: &'a str,
 }
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
@@ -310,10 +309,10 @@ pub struct Dependency {
 
 #[derive(Insertable, PartialEq, Debug)]
 #[table_name = "dependencies"]
-pub struct NewDependency {
-    pub package: String,
+pub struct NewDependency<'a> {
+    pub package: &'a str,
     pub version: i32,
-    pub spec: String,
+    pub spec: &'a str,
     #[column_name = "type_"]
     pub dep_type: types::DependencyType,
 }
@@ -331,9 +330,9 @@ pub struct ContentNode {
 
 #[derive(Insertable, PartialEq, Debug)]
 #[table_name = "contents"]
-pub struct NewContentNode {
+pub struct NewContentNode<'a> {
     pub version: i32,
-    pub path: String,
+    pub path: &'a str,
     #[column_name = "type_"]
     pub node_type: types::NodeType,
 }
@@ -349,9 +348,9 @@ pub struct Maintainer {
 
 #[derive(Insertable, PartialEq, Debug)]
 #[table_name = "maintainers"]
-pub struct NewMaintainer {
+pub struct NewMaintainer<'a> {
     pub user: i32,
-    pub package: String,
+    pub package: &'a str,
 }
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
@@ -365,10 +364,10 @@ pub struct Description {
 
 #[derive(Insertable, PartialEq, Debug)]
 #[table_name = "descriptions"]
-pub struct NewDescription {
-    pub package: String,
+pub struct NewDescription<'a> {
+    pub package: &'a str,
     pub language: types::Language,
-    pub description: String,
+    pub description: &'a str,
 }
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
@@ -383,11 +382,11 @@ pub struct VersionText {
 
 #[derive(Insertable, PartialEq, Debug)]
 #[table_name = "version_texts"]
-pub struct NewVersionText {
+pub struct NewVersionText<'a> {
     pub version: i32,
     pub language: types::Language,
-    pub changes: String,
-    pub readme: String,
+    pub changes: &'a str,
+    pub readme: &'a str,
 }
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
@@ -401,10 +400,10 @@ pub struct DependencyDescription {
 
 #[derive(Insertable, PartialEq, Debug)]
 #[table_name = "dependency_descriptions"]
-pub struct NewDependencyDescription {
+pub struct NewDependencyDescription<'a> {
     pub dependency: i32,
     pub language: types::Language,
-    pub description: String,
+    pub description: &'a str,
 }
 
 #[derive(Queryable, QueryableByName, PartialEq, Debug)]

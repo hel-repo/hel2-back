@@ -1,15 +1,17 @@
 use std::collections::HashMap;
 
 use actix::{Message, Handler};
-use diesel;
+use diesel::{self, insert_into};
 use diesel::sql_types::{BigInt, Text};
 use diesel::prelude::*;
 
-use ::error::Result;
+use ::error::{Error, Result};
 use ::models::*;
 use super::DbExecutor;
 use super::models;
 use super::schema;
+
+sql_function!(lower, lower_t, (s: Text) -> Text);
 
 pub struct GetPackage(String);
 
@@ -152,7 +154,7 @@ impl Handler<GetUser> for DbExecutor {
         let username = &msg.0;
 
         let user = schema::users::table
-            .filter(diesel::dsl::sql("lower(username) = ").bind::<Text, _>(username))
+            .filter(lower(schema::users::username).eq(username.to_lowercase()))
             .get_result::<models::User>(&self.conn)?;
 
         Ok(user::Full {
@@ -266,8 +268,173 @@ impl Handler<GetPackages> for DbExecutor {
                         }).collect(),
                     }).collect(),
                     downloads: package.downloads,
-                    likes: likes,
+                    likes,
                 }
             }).collect())
+    }
+}
+
+pub struct CreatePackage<'a>(pub &'a package::Full);
+
+impl<'a> Message for CreatePackage<'a> {
+    type Result = Result<()>;
+}
+
+impl<'a> Handler<CreatePackage<'a>> for DbExecutor {
+    type Result = Result<()>;
+
+    fn handle(&mut self, msg: CreatePackage<'a>, _: &mut Self::Context) -> Self::Result {
+        self.conn.transaction::<(), Error, _>(|| {
+            let name = &msg.0.name;
+
+            insert_into(schema::packages::table).values(&models::NewPackage {
+                name: &name,
+                website: &msg.0.website,
+                license: &msg.0.license,
+                authors: &msg.0.authors,
+            }).execute(&self.conn)?;
+
+            let versions: HashMap<String, i32> = insert_into(schema::versions::table)
+                .values(&msg.0.versions.iter().map(|x| models::NewVersion {
+                    package: &name,
+                    version: &x.version,
+                }).collect::<Vec<_>>())
+                .returning((schema::versions::version, schema::versions::id))
+                .get_results(&self.conn)?
+                .into_iter()
+                .collect();
+
+            let get_version_id = move |version: &version::Full| {
+                *versions.get(&version.version).unwrap()
+            };
+
+            let dependencies: Vec<((i32, String), i32)> = {
+                let mut values: Vec<models::NewDependency> = Vec::new();
+
+                for version in msg.0.versions.iter() {
+                    let version_id = get_version_id(version);
+
+                    for dep in version.dependencies.iter() {
+                        values.push(models::NewDependency {
+                            package: &name,
+                            version: version_id,
+                            spec: &dep.spec,
+                            dep_type: dep.dep_type,
+                        });
+                    }
+                }
+
+                insert_into(schema::dependencies::table)
+                    .values(&values)
+                    .returning(((schema::dependencies::version, schema::dependencies::package),
+                                schema::dependencies::id))
+                    .get_results(&self.conn)?
+            };
+
+            {
+                let mut values: Vec<models::NewDependencyDescription> = Vec::new();
+
+                for version in msg.0.versions.iter() {
+                    let version_id = get_version_id(version);
+
+                    for dep in version.dependencies.iter() {
+                        if let Some(desc) = dep.description.as_ref() {
+                            let dep_id = dependencies
+                                .iter()
+                                .find(|x| (x.0).0 == version_id && &(x.0).1 == &dep.package)
+                                .unwrap().1;
+
+                            for text in desc.iter() {
+                                values.push(models::NewDependencyDescription {
+                                    dependency: dep_id,
+                                    language: text.language,
+                                    description: &text.text,
+                                });
+                            }
+                        }
+                    }
+                }
+
+                insert_into(schema::dependency_descriptions::table)
+                    .values(&values)
+                    .execute(&self.conn)?;
+            }
+
+            {
+                let mut values: Vec<models::NewContentNode> = Vec::new();
+
+                for version in msg.0.versions.iter() {
+                    let version_id = get_version_id(version);
+
+                    for node in version.contents.iter() {
+                        values.push(models::NewContentNode {
+                            version: version_id,
+                            path: &node.path,
+                            node_type: node.node_type,
+                        });
+                    }
+                }
+
+                insert_into(schema::contents::table)
+                    .values(&values)
+                    .execute(&self.conn)?;
+            }
+
+            {
+                let mut values: Vec<models::NewVersionText> = Vec::new();
+
+                for version in msg.0.versions.iter() {
+                    let version_id = get_version_id(version);
+
+                    let mut changes: HashMap<models::types::Language, &Localized> = HashMap::new();
+
+                    for text in version.changes.iter() {
+                        changes.insert(text.language, &text);
+                    }
+
+                    for readme in version.readme.iter() {
+                        let changes_text = changes.get(&readme.language).unwrap();
+
+                        values.push(models::NewVersionText {
+                            version: version_id,
+                            language: readme.language,
+                            changes: &changes_text.text,
+                            readme: &readme.text,
+                        });
+                    }
+                }
+
+                insert_into(schema::version_texts::table)
+                    .values(&values)
+                    .execute(&self.conn)?;
+            }
+
+            insert_into(schema::descriptions::table).values(&msg.0.description.iter().map(|desc| {
+                models::NewDescription {
+                    package: &name,
+                    language: desc.language,
+                    description: &desc.text,
+                }
+            }).collect::<Vec<_>>()).execute(&self.conn)?;
+
+            let users: HashMap<String, i32> = schema::users::table
+                .select((schema::users::username, schema::users::id))
+                .filter(lower(schema::users::username).eq(diesel::dsl::any(
+                    &msg.0.maintainers.iter().map(|x| x.username.to_lowercase()).collect::<Vec<_>>()
+                )))
+                .get_results::<(String, i32)>(&self.conn)?
+                .into_iter()
+                .map(|x| (x.0.to_lowercase(), x.1))
+                .collect();
+
+            insert_into(schema::maintainers::table).values(&msg.0.maintainers.iter().map(|x| {
+                models::NewMaintainer {
+                    user: *users.get(&x.username.to_lowercase()).unwrap(),
+                    package: &name,
+                }
+            }).collect::<Vec<_>>()).execute(&self.conn)?;
+
+            Ok(())
+        })
     }
 }
