@@ -1,4 +1,4 @@
-use db::models::types::{Language, NodeType};
+use ::db::models::types::{Language, NodeType};
 
 pub mod date_serde {
     use chrono::{NaiveDateTime};
@@ -130,5 +130,22 @@ pub mod dependency {
     pub struct Short {
         pub package: String,
         pub spec: String,
+    }
+}
+
+pub mod api {
+    #[derive(Deserialize)]
+    pub struct PaginationRq {
+        pub page: u32,
+        pub limit: u32,
+    }
+
+    impl PaginationRq {
+        pub fn validate(self, page_limit: u32) -> PaginationRq {
+            PaginationRq {
+                page: self.page.max(1),
+                limit: self.limit.min(page_limit).max(1),
+            }
+        }
     }
 }

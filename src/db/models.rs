@@ -12,7 +12,7 @@ pub mod types {
     use diesel::serialize::{self, Output, ToSql};
     use diesel::sql_types::Varchar;
 
-    use error::{Error, ErrorKind, Result};
+    use error::ParseError;
 
     #[derive(AsExpression, FromSqlRow, Serialize, Deserialize,
              Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -24,14 +24,14 @@ pub mod types {
     }
 
     impl FromStr for UserGroup {
-        type Err = Error;
+        type Err = ParseError;
 
-        fn from_str(s: &str) -> Result<Self> {
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
             match s {
                 "user" => Ok(UserGroup::User),
                 "admin" => Ok(UserGroup::Admin),
                 "banned" => Ok(UserGroup::Banned),
-                _ => bail!(ErrorKind::UnknownGroup(s.to_string())),
+                _ => Err(ParseError::UnknownGroup { group: s.to_string() } ),
             }
         }
     }
@@ -60,10 +60,8 @@ pub mod types {
         String: FromSql<Varchar, DB>,
     {
         fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
-            match String::from_sql(bytes)?.parse::<UserGroup>() {
-                Ok(v) => Ok(v),
-                Err(e) => Err(Box::new(e)),
-            }
+            String::from_sql(bytes)?.parse::<UserGroup>()
+                .map_err(|e| e.to_string().into())
         }
     }
 
@@ -77,14 +75,14 @@ pub mod types {
     }
 
     impl FromStr for DependencyType {
-        type Err = Error;
+        type Err = ParseError;
 
-        fn from_str(s: &str) -> Result<Self> {
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
             match s {
                 "build-require" => Ok(DependencyType::BuildRequire),
                 "runtime-require" => Ok(DependencyType::RuntimeRequire),
                 "optional" => Ok(DependencyType::Optional),
-                _ => bail!(ErrorKind::UnknownDependencyType(s.to_string())),
+                _ => Err(ParseError::UnknownDependencyType { name: s.to_string()}),
             }
         }
     }
@@ -113,10 +111,8 @@ pub mod types {
         String: FromSql<Varchar, DB>,
     {
         fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
-            match String::from_sql(bytes)?.parse::<DependencyType>() {
-                Ok(v) => Ok(v),
-                Err(e) => Err(Box::new(e)),
-            }
+            String::from_sql(bytes)?.parse::<DependencyType>()
+                .map_err(|e| e.to_string().into())
         }
     }
 
@@ -129,13 +125,13 @@ pub mod types {
     }
 
     impl FromStr for NodeType {
-        type Err = Error;
+        type Err = ParseError;
 
-        fn from_str(s: &str) -> Result<Self> {
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
             match s {
                 "f" | "file" => Ok(NodeType::File),
                 "d" | "dir" | "directory" => Ok(NodeType::Directory),
-                _ => bail!(ErrorKind::UnknownNodeType(s.to_string())),
+                _ => Err(ParseError::UnknownNodeType { name: s.to_string() }),
             }
         }
     }
@@ -163,10 +159,8 @@ pub mod types {
         String: FromSql<Varchar, DB>,
     {
         fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
-            match String::from_sql(bytes)?.parse::<NodeType>() {
-                Ok(v) => Ok(v),
-                Err(e) => Err(Box::new(e)),
-            }
+            String::from_sql(bytes)?.parse::<NodeType>()
+                .map_err(|e| e.to_string().into())
         }
     }
 
@@ -179,13 +173,13 @@ pub mod types {
     }
 
     impl FromStr for Language {
-        type Err = Error;
+        type Err = ParseError;
 
-        fn from_str(s: &str) -> Result<Self> {
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
             match s {
                 "ru" | "rus" | "russian" => Ok(Language::Russian),
                 "en" | "eng" | "english" => Ok(Language::English),
-                _ => bail!(ErrorKind::UnknownLanguage(s.to_string())),
+                _ => Err(ParseError::UnknownLanguage { language: s.to_string() }),
             }
         }
     }
@@ -213,10 +207,8 @@ pub mod types {
         String: FromSql<Varchar, DB>,
     {
         fn from_sql(bytes: Option<&DB::RawValue>) -> deserialize::Result<Self> {
-            match String::from_sql(bytes)?.parse::<Language>() {
-                Ok(v) => Ok(v),
-                Err(e) => Err(Box::new(e)),
-            }
+            String::from_sql(bytes)?.parse::<Language>()
+                .map_err(|e| e.to_string().into())
         }
     }
 }

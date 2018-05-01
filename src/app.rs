@@ -1,5 +1,6 @@
 use actix::{Addr, Syn};
-use actix_web::{Application, Method};
+use actix_web::{App};
+use actix_web::http::Method;
 use actix_web::middleware::Logger;
 
 use resources;
@@ -8,8 +9,8 @@ use config::Config;
 
 #[derive(Clone)]
 pub struct State {
-    config: Config,
-    db: Addr<Syn, DbExecutor>
+    pub config: Config,
+    pub db: Addr<Syn, DbExecutor>,
 }
 
 impl State {
@@ -18,8 +19,11 @@ impl State {
     }
 }
 
-pub fn create(state: State) -> Application<State> {
-    Application::with_state(state)
+pub fn create(state: State) -> App<State> {
+    App::with_state(state)
         .middleware(Logger::default())
         .resource("/", |r| r.method(Method::GET).f(resources::index))
+        .resource("/api/packages", |r| {
+            r.method(Method::GET).a(resources::list_packages)
+        })
 }

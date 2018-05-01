@@ -1,7 +1,9 @@
 #[macro_use] extern crate diesel;
-#[macro_use] extern crate error_chain;
 extern crate env_logger;
 extern crate chrono;
+
+extern crate failure;
+#[macro_use] extern crate failure_derive;
 
 extern crate futures;
 extern crate actix;
@@ -20,7 +22,7 @@ mod resources;
 mod models;
 
 use actix::{System, SyncArbiter};
-use actix_web::HttpServer;
+use actix_web::server;
 
 use app::State;
 
@@ -33,21 +35,21 @@ fn main() {
 
     let sys = System::new("hel2-back");
 
-    let db_config = config.clone();
-    let db = SyncArbiter::start(config.db_threads, move || {
+    let db_config = config.database.clone();
+    let db = SyncArbiter::start(config.database.threads, move || {
         db::DbExecutor {
-            conn: db::establish_connection(&db_config.db).unwrap()
+            conn: db::establish_connection(&db_config.url).unwrap()
         }
     });
 
     let state = State::new(config.clone(), db);
 
-    let mut b = HttpServer::new(move || app::create(state.clone()));
+    let mut b = server::new(move || app::create(state.clone()));
 
-    if let Some(http_threads) = config.http_threads {
+    if let Some(http_threads) = config.http.threads {
         b = b.threads(http_threads);
     }
 
-    b.bind(config.address).unwrap().start();
+    b.bind(config.http.bind_address).unwrap().start();
     sys.run();
 }

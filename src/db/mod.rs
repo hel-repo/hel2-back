@@ -4,12 +4,11 @@ pub mod schema;
 
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
+use failure::Error;
 
 use actix::{SyncContext, Actor};
 
-use super::error::Result;
-
-pub fn establish_connection(db: &str) -> Result<PgConnection> {
+pub fn establish_connection(db: &str) -> Result<PgConnection, Error> {
     Ok(PgConnection::establish(db)?)
 }
 

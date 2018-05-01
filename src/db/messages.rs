@@ -4,8 +4,8 @@ use actix::{Message, Handler};
 use diesel::{self, insert_into};
 use diesel::sql_types::{BigInt, Text};
 use diesel::prelude::*;
+use failure::Error;
 
-use ::error::{Error, Result};
 use ::models::*;
 use super::DbExecutor;
 use super::models;
@@ -16,11 +16,11 @@ sql_function!(lower, lower_t, (s: Text) -> Text);
 pub struct GetPackage(String);
 
 impl Message for GetPackage {
-    type Result = Result<package::Full>;
+    type Result = Result<package::Full, Error>;
 }
 
 impl Handler<GetPackage> for DbExecutor {
-    type Result = Result<package::Full>;
+    type Result = Result<package::Full, Error>;
 
     fn handle(&mut self, msg: GetPackage, _: &mut Self::Context) -> Self::Result {
         let name: &String = &msg.0;
@@ -144,11 +144,11 @@ impl Handler<GetPackage> for DbExecutor {
 pub struct GetUser(String);
 
 impl Message for GetUser {
-    type Result = Result<user::Full>;
+    type Result = Result<user::Full, Error>;
 }
 
 impl Handler<GetUser> for DbExecutor {
-    type Result = Result<user::Full>;
+    type Result = Result<user::Full, Error>;
 
     fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
         let username = &msg.0;
@@ -166,16 +166,16 @@ impl Handler<GetUser> for DbExecutor {
 }
 
 pub struct GetPackages {
-    pub page: i32,
-    pub limit: i32,
+    pub page: u32,
+    pub limit: u32,
 }
 
 impl Message for GetPackages {
-    type Result = Result<Vec<package::Short>>;
+    type Result = Result<Vec<package::Short>, Error>;
 }
 
 impl Handler<GetPackages> for DbExecutor {
-    type Result = Result<Vec<package::Short>>;
+    type Result = Result<Vec<package::Short>, Error>;
 
     fn handle(&mut self, msg: GetPackages, _: &mut Self::Context) -> Self::Result {
         let offset = (msg.page - 1) * msg.limit;
@@ -277,11 +277,11 @@ impl Handler<GetPackages> for DbExecutor {
 pub struct CreatePackage<'a>(pub &'a package::Full);
 
 impl<'a> Message for CreatePackage<'a> {
-    type Result = Result<()>;
+    type Result = Result<(), Error>;
 }
 
 impl<'a> Handler<CreatePackage<'a>> for DbExecutor {
-    type Result = Result<()>;
+    type Result = Result<(), Error>;
 
     fn handle(&mut self, msg: CreatePackage<'a>, _: &mut Self::Context) -> Self::Result {
         self.conn.transaction::<(), Error, _>(|| {
@@ -436,5 +436,32 @@ impl<'a> Handler<CreatePackage<'a>> for DbExecutor {
 
             Ok(())
         })
+    }
+}
+
+pub struct CreateUser<'a> {
+    pub username: &'a str,
+    pub password: &'a [u8],
+    pub salt: &'a [u8],
+    pub group: models::types::UserGroup,
+}
+
+impl<'a> Message for CreateUser<'a> {
+    type Result = Result<i32, Error>;
+}
+
+impl<'a> Handler<CreateUser<'a>> for DbExecutor {
+    type Result = Result<i32, Error>;
+
+    fn handle(&mut self, msg: CreateUser<'a>, _: &mut Self::Context) -> Self::Result {
+        Ok(insert_into(schema::users::table)
+            .values(&models::NewUser {
+                username: msg.username,
+                password: msg.password,
+                salt: msg.salt,
+                group: msg.group,
+            })
+            .returning(schema::users::id)
+            .get_result(&self.conn)?)
     }
 }
