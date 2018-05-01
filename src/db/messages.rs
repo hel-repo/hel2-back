@@ -13,7 +13,7 @@ use super::schema;
 
 sql_function!(lower, lower_t, (s: Text) -> Text);
 
-pub struct GetPackage(String);
+pub struct GetPackage(pub String);
 
 impl Message for GetPackage {
     type Result = Result<package::Full, Error>;
@@ -23,7 +23,7 @@ impl Handler<GetPackage> for DbExecutor {
     type Result = Result<package::Full, Error>;
 
     fn handle(&mut self, msg: GetPackage, _: &mut Self::Context) -> Self::Result {
-        let name: &String = &msg.0;
+        let name = &msg.0;
 
         let package: models::Package = schema::packages::table.find(name)
             .get_result::<models::Package>(&self.conn)?;
@@ -141,7 +141,7 @@ impl Handler<GetPackage> for DbExecutor {
     }
 }
 
-pub struct GetUser(String);
+pub struct GetUser(pub String);
 
 impl Message for GetUser {
     type Result = Result<user::Full, Error>;
@@ -151,7 +151,7 @@ impl Handler<GetUser> for DbExecutor {
     type Result = Result<user::Full, Error>;
 
     fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
-        let username = &msg.0;
+        let username = msg.0;
 
         let user = schema::users::table
             .filter(lower(schema::users::username).eq(username.to_lowercase()))
@@ -274,16 +274,16 @@ impl Handler<GetPackages> for DbExecutor {
     }
 }
 
-pub struct CreatePackage<'a>(pub &'a package::Full);
+pub struct CreatePackage(pub package::Full);
 
-impl<'a> Message for CreatePackage<'a> {
+impl Message for CreatePackage {
     type Result = Result<(), Error>;
 }
 
-impl<'a> Handler<CreatePackage<'a>> for DbExecutor {
+impl Handler<CreatePackage> for DbExecutor {
     type Result = Result<(), Error>;
 
-    fn handle(&mut self, msg: CreatePackage<'a>, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: CreatePackage, _: &mut Self::Context) -> Self::Result {
         self.conn.transaction::<(), Error, _>(|| {
             let name = &msg.0.name;
 
@@ -439,26 +439,26 @@ impl<'a> Handler<CreatePackage<'a>> for DbExecutor {
     }
 }
 
-pub struct CreateUser<'a> {
-    pub username: &'a str,
-    pub password: &'a [u8],
-    pub salt: &'a [u8],
+pub struct CreateUser {
+    pub username: String,
+    pub password: [u8; 64],
+    pub salt: [u8; 64],
     pub group: models::types::UserGroup,
 }
 
-impl<'a> Message for CreateUser<'a> {
+impl Message for CreateUser {
     type Result = Result<i32, Error>;
 }
 
-impl<'a> Handler<CreateUser<'a>> for DbExecutor {
+impl Handler<CreateUser> for DbExecutor {
     type Result = Result<i32, Error>;
 
-    fn handle(&mut self, msg: CreateUser<'a>, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: CreateUser, _: &mut Self::Context) -> Self::Result {
         Ok(insert_into(schema::users::table)
             .values(&models::NewUser {
-                username: msg.username,
-                password: msg.password,
-                salt: msg.salt,
+                username: &msg.username,
+                password: &msg.password,
+                salt: &msg.salt,
                 group: msg.group,
             })
             .returning(schema::users::id)

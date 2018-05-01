@@ -26,4 +26,7 @@ pub fn create(state: State) -> App<State> {
         .resource("/api/packages", |r| {
             r.method(Method::GET).a(resources::list_packages)
         })
+        .resource("/api/packages/{name}", |r| {
+            r.method(Method::GET).with2(resources::get_package)
+        })
 }

@@ -148,4 +148,9 @@ pub mod api {
             }
         }
     }
+
+    #[derive(Deserialize)]
+    pub struct Name {
+        pub name: String,
+    }
 }
